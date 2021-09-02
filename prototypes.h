@@ -9,7 +9,8 @@
 
 // Console log prototypes
 
-void printMessage(char*);
+void printLog(char*);
+void printWarning(char*);
 void printError(char*);
 
 #endif
