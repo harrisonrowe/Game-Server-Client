@@ -1,7 +1,13 @@
 #ifndef PROTOTYPES_H
 #define PROTOTYPES_H
 
-// Function prototypes
+// Client prototypes
+
+void initClient(struct sockaddr_in*, int*, int*);
+
+// Server prototypes
+
+void initServer(struct sockaddr_in*, struct sockaddr_in*, int*, int*);
 
 // Main function prototypes
 

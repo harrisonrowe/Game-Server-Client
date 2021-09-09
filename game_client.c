@@ -18,33 +18,7 @@ int main(int argc, char* argv[]){
     //     exit(1);
     // }
 
-    // Prepare socket structure
-    server.sin_addr.s_addr = inet_addr(IP);
-    server.sin_family = AF_INET;
-    server.sin_port = htons(PORT);
-
-    // CREATE SOCKET
-
-    // Create socket descriptor
-    clientSocket = socket(AF_INET, SOCK_STREAM, 0);
-    // Error handle for socket
-    if (clientSocket < 0){
-        printf("Socket Not Created.\n");
-        exit(1);
-    } else {
-        printf("Socket Created.\n");
-    }
-
-    // CONNECT TO SERVER
-
-    res = connect(clientSocket, (struct sockaddr *) &server, sizeof(server));
-    // Check if connection successful
-    if (res == -1){
-        printf("Connection Failed.\n");
-        exit(1);
-    } else {
-        printf("Connection Successful.\n");
-    }
+    initClient(&server, &clientSocket, &res);
 
     // COMMUNICATE WITH SERVER
 
@@ -77,14 +51,13 @@ int main(int argc, char* argv[]){
 
         // Client timeout -> Data not recieved
         if (sret == 0){
-            printf("\nClient Timeout.\n");
+            printLog("Client timeout.");
             res = send(clientSocket, "quit", SIZE, 0);
             res = recv(clientSocket, serverMsg, SIZE, 0);
             break;
         } else {
-            // Scan input
-            scanf("%s", clientMsg);
-
+            // Scan entire input line
+            scanf("%[^\n]%*c", clientMsg);
             // Send data to server
             res = send(clientSocket, clientMsg, SIZE, 0);
             if (res < 0){
