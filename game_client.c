@@ -1,9 +1,12 @@
 #include "includes.h"
 
 int main(int argc, char* argv[]){
+    // Validate command line input
+    if (argc != 4){
+        printError("Insuffficient command line arguments.");
+    }
 
-    // Client and server messages
-    char clientMsg[SIZE] = "";
+    // Variables
     char serverMsg[SIZE] = "";
     // Client socket structure
     struct sockaddr_in server;
@@ -11,72 +14,53 @@ int main(int argc, char* argv[]){
     int res = 0;
     // Hold client socket descriptor entry
     int clientSocket = 0;
+    // Port/server variables
+    int port = atoi(argv[3]);
+    char* ip;
+    // Command line variables
+    char gameType[SIZE];
+    char serverName[SIZE];
+    // Copy from command line
+    strcpy(gameType, argv[1]);
+    strcpy(serverName, argv[2]);
 
-    // Define server address, get from cmd
-    // if (argc < 2){
-    //     printf("Missing IP Address.\n");
-    //     exit(1);
-    // }
+    // Initiate client
+    initClient(&server, &clientSocket, &res, port, serverName);
 
-    initClient(&server, &clientSocket, &res);
-
-    // COMMUNICATE WITH SERVER
-
-    // Client timeout
-    struct timeval timeout;
-    fd_set readfds;
-    int fd = 0, sret;
-
-    // Clear and set file descriptors
-    FD_ZERO(&readfds); // Clear file descriptor array of bits
-    FD_SET(fd, &readfds); // Add file descriptor to set
-
-    // Communication loop
-    while(strcmp(clientMsg, "quit") != 0){
-        
-        // Clear client and server messages
-        memset(clientMsg, '\0', SIZE);
+    // If communication with server is successful, run a loop, listening for messages
+    while(1){
+        // Prepare and recieve server message
+        // Clear server messages
         memset(serverMsg, '\0', SIZE);
+        // Recieve message from server
+        res = recv(clientSocket, serverMsg, SIZE, 0);
+        // Tokenise client buffer (by spaces)
+        char** msg = 0;
+        int size = 0;
+        tokenString(&msg, serverMsg, &size);
 
-        // Prepare console for user input
-        printf("> ");
-        fflush(stdout); // Enforce data is sent, flush overhead that is sent by OS
-        
-        // Timeout length
-        timeout.tv_sec = 30;
-        timeout.tv_usec = 0;
-
-        // Check for timeout (30 seconds)
-        sret = select(8, &readfds, NULL, NULL, &timeout); // Return 
-
-        // Client timeout -> Data not recieved
-        if (sret == 0){
-            printLog("Client timeout.");
-            res = send(clientSocket, "quit", SIZE, 0);
-            res = recv(clientSocket, serverMsg, SIZE, 0);
+        // Check what msg has been recieved from server
+        if (strcmp(msg[0], "TEXT") == 0){
+            // Print remaining tokens after TEXT
+            printTextMessage(&msg, size);
+        } else if (strcmp(msg[0], "GO") == 0){
+            // Request input from user
+            clientGo(clientSocket, res);
+        } else if (strcmp(msg[0], "END") == 0){
+            // Close descriptor
+            close(clientSocket);
             break;
+        } else if (strcmp(msg[0], "ERROR") == 0){
+            // Close descriptor
+            close(clientSocket);
+            printError("Server error.");
         } else {
-            // Scan entire input line
-            scanf("%[^\n]%*c", clientMsg);
-            // Send data to server
-            res = send(clientSocket, clientMsg, SIZE, 0);
-            if (res < 0){
-                printf("Send data failed.\n");
-                exit(1);
-            }
-            // Recieve data
-            if (strcmp(clientMsg, "time") == 0){
-                res = recv(clientSocket, serverMsg, SIZE, 0);
-                printf("Reply from client: %s", serverMsg);
-            } else if (strcmp(clientMsg, "quit") == 0){
-                res = recv(clientSocket, serverMsg, SIZE, 0);
-                break;
-            }
+            // Undefined command from server, terminate client
+            close(clientSocket);
+            printError("Unknown command from server.");
         }
+        // Free message pointer
+        free(msg);
     }
-
-    // Close descriptor
-    close(clientSocket);
-
     return 0;
 }
